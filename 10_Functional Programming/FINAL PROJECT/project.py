@@ -1,125 +1,203 @@
-def check_col():
-    first_list = [last_row, last_row + 1, last_row + 2, last_row + 3]
-    second_list = [last_row - 1, last_row, last_row , last_row + 2]
-    third_list = [last_row - 2, last_row - 1, last_row , last_row + 1]
-    fourth_list = [last_row - 3, last_row - 2, last_row - 1 , last_row]
-    if(first_list[0] >= 0 and first_list[0] < 6 and first_list[3] >= 0 and first_list[3] < 6):
-        one = grid[first_list[0]][last_col]
-        two = grid[first_list[1]][last_col]
-        three = grid[first_list[2]][last_col]
-        four = grid[first_list[3]][last_col]
-        if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-            return True
+import tkinter as tk
 
-    if(second_list[ 0] >=0 and second_list[0] <6 and second_list[3] >= 0 and second_list[3] < 6):
-        one = grid[second_list[0]][last_col]
-        two = grid[second_list[1]][last_col]
-        three = grid[second_list[2]][last_col]
-        four = grid[second_list[3]][last_col]
-        if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-            return True
+class Game(tk.Frame):
+    def __init__(self, master):
+        super(Game, self).__init__(master)
+        self.lives = 3
+        self.width = 610
+        self.height = 400
+        self.bg = "#AAAAFF"
+        self.canvas = tk.Canvas(self, width=self.width, height=self.height, bg=self.bg)        
+        self.canvas.pack()
+        self.pack()
 
-    if(third_list[ 0] >=0 and third_list[0] <6 and third_list[3] >= 0 and third_list[3] < 6):
-        one = grid[third_list[0]][last_col]
-        two = grid[third_list[1]][last_col]
-        three = grid[third_list[2]][last_col]
-        four = grid[third_list[3]][last_col]
-        if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-            return True
- 
-    if(fourth_list[ 0] >=0 and fourth_list[0] <6 and fourth_list[3] >= 0 and fourth_list[3] < 6):
-        one = grid[fourth_list[0]][last_col]
-        two = grid[fourth_list[1]][last_col]
-        three = grid[fourth_list[2]][last_col]
-        four = grid[fourth_list[3]][last_col]
-        if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-            return True
-    return False
+        self.items = {}
+        self.ball = None
+        self.paddle = Paddle(self.canvas, self.width / 2, 326)
+        self.items[self.paddle.item] = self.paddle
 
-def check_left_diag():
-    first_list_row = [last_col, last_col + 1, last_col + 2, last_col + 3]
-    first_list_col = [last_row, last_row + 1, last_row + 2, last_row + 3]
-    second_list_row = [last_col - 1, last_col, last_col + 1, last_col + 2]
-    second_list_col = [last_row - 1, last_row, last_row + 1, last_row + 2]
-    third_list_row = [last_col - 2, last_col - 1, last_col , last_col + 1]
-    third_list_col = [last_row - 2, last_row - 1, last_row , last_row + 1]
-    fourth_list_row = [last_col - 3, last_col - 2, last_col - 1 , last_col]
-    fourth_list_col = [last_row - 3, last_row - 2, last_row - 1 , last_row]
-    if(first_list_row[0] >= 0 and first_list_row[0] < 7 and first_list_row[3] >= 0 and first_list_row[3] < 7):
-        if(first_list_col[0] >= 0 and first_list_col[0] < 6 and first_list_col[3] >= 0 and first_list_col[3] < 6):
-            one = grid[first_list_col[0]][first_list_row[0]]
-            two = grid[first_list_col[1]][first_list_row[1]]
-            three = grid[first_list_col[2]][first_list_row[2]]
-            four = grid[first_list_col[3]][first_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
-    if (second_list_col[0] >= 0 and second_list_col[0] < 6 and second_list_col[3] >= 6 and second_list_col[3] < 6):
-        if(second_list_row[0] >= 0 and second_list_row[0] < 7 and second_list_row[3] >= 0 and second_list_row[3] < 7):
-            one = grid[second_list_col[0]][second_list_row[0]]
-            two = grid[second_list_col[1]][second_list_row[1]]
-            three = grid[second_list_col[2]][second_list_row[2]]
-            four = grid[second_list_col[3]][second_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
+        for x in range(5, self.width - 75, 75):
+            self.add_brick(x + 37.5, 50, 2)
+            self.add_brick(x + 37.5, 70, 1)
+            self.add_brick(x + 37.5, 90, 1)
+
+        self.hud = None
+        self.setup_game()
+        self.canvas.focus_set()
+        self.canvas.bind("<Left>", lambda _: self.paddle.move(-10))
+        self.canvas.bind("<Right>", lambda _: self.paddle.move(10))
+
+    def setup_game(self):
+        self.add_ball()
+        self.update_lives_text()
+        self.text = self.draw_text(300, 200, "Press Space to start")
+        self.canvas.bind("<space>", lambda _: self.start_game())
+
+    def add_ball(self):
+        if self.ball is not None:
+            self.ball.delete()
+        paddle_coords = self.paddle.get_position()
+        x = (paddle_coords[0] + paddle_coords[2]) / 2
+        self.ball = Ball(self.canvas, x, 310)
+        self.paddle.set_ball(self.ball)
+
+    def add_brick(self, x, y, hits):
+        brick = Brick(self.canvas, x, y, hits)
+        self.items[brick.item] = brick
+
+    def draw_text(self, x, y, text, size="40"):
+        font = ("Helvetica", size)
+        return self.canvas.create_text(x, y, text=text, font=font)
+    
+    def update_lives_text(self):
+        text = "Lives: %s" % self.lives
+        if self.hud == None:
+            self.hud = self.draw_text(50, 20, text, 15)
+        else:
+            self.canvas.itemconfig(self.hud, text=text)
+
+    def start_game(self):
+        self.canvas.unbind("<space>")
+        self.canvas.delete(self.text)
+        self.paddle.ball = None
+        self.game_loop()
+
+    def game_loop(self):
+        self.check_collisions()
+        num_bricks = len(self.canvas.find_withtag("brick"))
+        if num_bricks == 0:
+            self.ball.speed = None
+            self.draw_text(300, 200, "You win!")
+        elif self.ball.get_position()[3] >= self.height:
+            self.ball.speed = None
+            self.lives -= 1
+            if self.lives < 0:
+                self.draw_text(300, 200, "Game Over")
+            else:
+                self.after(1000, self.setup_game)
+        else:
+            self.ball.update()
+            self.after(50, self.game_loop)
+
+    def check_collisions(self):
+        ball_coords = self.ball.get_position()
+        items = self.canvas.find_overlapping(*ball_coords)
+        objects = [self.items[x] for x in items if x in self.items]
+        self.ball.collide(objects)
+
+class GameObject(object):
+    def __init__(self, canvas, item):
+        self.canvas = canvas
+        self.item = item
+
+    def get_position(self):
+        return self.canvas.coords(self.item)
+    
+    def move(self, x, y):
+        self.canvas.move(self.item, x, y)
+
+    def delete(self):
+        self.canvas.delete(self.item)
+
+class Ball(GameObject):
+    def __init__(self, canvas, x, y):  
+        self.radius = 10 
+        self.direction = [1, -1] 
+        self.speed = 10 
+        x1 = x - self.radius
+        y1 = y - self.radius
+        x2 = x + self.radius
+        y2 = y + self.radius  
+        color = "white"
+        item = canvas.create_oval(x1, y1, x2, y2, fill=color)
+        super(Ball, self).__init__(canvas, item)
+
+    def update(self):
+        coords = self.get_position()
+        width = self.canvas.winfo_width()
+        if coords[0] <= 0 or coords[2] >= width:
+            self.direction[0] *= -1
+        if coords[1] <= 0:
+            self.direction[1] *= -1
+        x = self.direction[0] * self.speed
+        y = self.direction[1] * self.speed
+        self.move(x, y)
+
+    def collide(self, game_objects):
+        coords = self.get_position()
+        x1 = coords[0]
+        x2 = coords[2]
+        x = (x1 + x2) / 2
+        if len(game_objects) > 1:
+            self.direction[0] *- 1
+        elif len(game_objects) == 1:
+            game_object = game_objects[0]
+            coords = game_object.get_position()
+            if x > coords[2] :
+                self.direction[0] = 1
+            elif x < coords[0]:
+                self.direction[0] = -1
+            else:
+                self.direction[1] *= -1 
+        
+        for game_object in game_objects:
+            if(isinstance(game_object, Brick)):
+                game_object.hit()
+
+class Paddle(GameObject):
+    def __init__(self, canvas, x, y):  
+        self.width = 80
+        self.height = 10
+        self.ball = None
+        x1 = x - self.width / 2
+        y1 = y - self.height / 2
+        x2 = x + self.width / 2
+        y2 = y + self.height / 2
+        color = "blue"
+        item = canvas.create_rectangle(x1, y1, x2, y2, fill=color)  
+        super(Paddle, self).__init__(canvas, item)
+        
+
+    def set_ball(self, ball):
+        self.ball = ball
+
+    def move(self, offset):
+        coords = self.get_position()
+        width = self.canvas.winfo_width()
+        x1 = coords[0]
+        y1 = coords[1]
+        x2 = coords[2]
+        y2 = coords[3]
+        if x1 + offset >= 0 and x2 + offset <= width:
+            super(Paddle, self).move(offset, 0)
+        if self.ball is not None:
+            self.ball.move(offset, 0)
+
+class Brick(GameObject):
+    COLORS = {1 : "#999999", 2 : "#555555", 3 : "#222222"}
+
+    def __init__(self, canvas, x, y, hits):
+        self.width = 75
+        self.height = 20
+        self.hits = hits
+        x1 = x - self.width / 2
+        y1 = y - self.height / 2
+        x2 = x + self.width / 2
+        y2 = y + self.height / 2       
+        color = Brick.COLORS[hits]
+        item = canvas.create_rectangle(x1, y1, x2, y2, fill=color, tags="brick")         
+        super(Brick, self).__init__(canvas, item)
+
+    def hit(self): 
+        self.hits -= 1
+        if self.hits == 0:
+            self.delete()
+        else:
+            self.canvas.itemconfig(self.item, fill=Brick.COLORS[self.hits])
    
-    if(third_list_row[ 0] >=0 and third_list_row[0] <7 and third_list_row[3] >= 0 and third_list_row[3] < 7):
-        if(third_list_col[ 0] >=0 and third_list_col[0] <6 and third_list_col[3] >= 0 and third_list_col[3] < 6):
-            one = grid[third_list_col[0]][third_list_row[0]]
-            two = grid[third_list_col[1]][third_list_row[1]]
-            three = grid[third_list_col[2]][third_list_row[2]]
-            four = grid[third_list_col[3]][third_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
-    if(fourth_list_row[ 0] >=0 and fourth_list_row[0] <7 and fourth_list_row[3] >= 0 and fourth_list_row[3] < 7):
-        if(fourth_list_col[ 0] >=0 and fourth_list_col[0] <6 and fourth_list_col[3] >= 0 and fourth_list_col[3] < 6):
-            one = grid[fourth_list_col[0]][fourth_list_row[0]]
-            two = grid[fourth_list_col[1]][fourth_list_row[1]]
-            three = grid[fourth_list_col[2]][fourth_list_row[2]]
-            four = grid[fourth_list_col[3]][fourth_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
-    return False
 
-def check_right_diag():
-    first_list_row = [last_col, last_col - 1, last_col - 2, last_col - 3]
-    first_list_col = [last_row, last_row + 1, last_row + 2, last_row + 3]
-    second_list_row = [last_col + 1, last_col, last_col - 1, last_col - 2]
-    second_list_col = [last_row - 1, last_row, last_row + 1, last_row + 2]
-    third_list_row = [last_col + 2, last_col + 1, last_col , last_col - 1]
-    third_list_col = [last_row - 2, last_row - 1, last_row , last_row + 1]
-    fourth_list_row = [last_col + 3, last_col + 2, last_col + 1 , last_col]
-    fourth_list_col = [last_row - 3, last_row - 2, last_row - 1 , last_row]
-    if(first_list_row[0] >= 0 and first_list_row[0] < 7 and first_list_row[3] >= 0 and first_list_row[3] < 7):
-        if(first_list_col[0] >= 0 and first_list_col[0] < 6 and first_list_col[3] >= 0 and first_list_col[3] < 6):
-            one = grid[first_list_col[0]][first_list_row[0]]
-            two = grid[first_list_col[1]][first_list_row[1]]
-            three = grid[first_list_col[2]][first_list_row[2]]
-            four = grid[first_list_col[3]][first_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
-    if (second_list_col[0] >= 0 and second_list_col[0] < 6 and second_list_col[3] >= 0 and second_list_col[3] < 6):
-        if(second_list_row[0] >= 0 and second_list_row[0] < 7 and second_list_row[3] >= 0 and second_list_row[3] < 7):
-            one = grid[second_list_col[0]][second_list_row[0]]
-            two = grid[second_list_col[1]][second_list_row[1]]
-            three = grid[second_list_col[2]][second_list_row[2]]
-            four = grid[second_list_col[3]][second_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
-   
-    if(third_list_row[ 0] >=0 and third_list_row[0] <7 and third_list_row[3] >= 0 and third_list_row[3] < 7):
-        if(third_list_col[ 0] >=0 and third_list_col[0] <6 and third_list_col[3] >= 0 and third_list_col[3] < 6):
-            one = grid[third_list_col[0]][third_list_row[0]]
-            two = grid[third_list_col[1]][third_list_row[1]]
-            three = grid[third_list_col[2]][third_list_row[2]]
-            four = grid[third_list_col[3]][third_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
-    if(fourth_list_row[ 0] >=0 and fourth_list_row[0] <7 and fourth_list_row[3] >= 0 and fourth_list_row[3] < 7):
-        if(fourth_list_col[ 0] >=0 and fourth_list_col[0] <6 and fourth_list_col[3] >= 0 and fourth_list_col[3] < 6):
-            one = grid[fourth_list_col[0]][fourth_list_row[0]]
-            two = grid[fourth_list_col[1]][fourth_list_row[1]]
-            three = grid[fourth_list_col[2]][fourth_list_row[2]]
-            four = grid[fourth_list_col[3]][fourth_list_row[3]]
-            if one.__eq__(two) and two.__eq__(three) and three.__eq__(four):
-                return True
-    return False
+if __name__ == "__main__":    
+    root = tk.Tk()
+    game = Game(root)
+    root.title("BREAKOUT")
+    root.mainloop()
